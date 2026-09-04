@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Okul Simülasyonu 3D</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; font-family:'Segoe UI', Tahoma, sans-serif; background:#87ceeb; }
+  canvas { display:block; }
+
+  #hud {
+    position:fixed; top:16px; left:16px; z-index:10;
+    background:rgba(20,25,40,0.72); backdrop-filter:blur(6px);
+    color:#fff; padding:12px 16px; border-radius:14px;
+    box-shadow:0 4px 18px rgba(0,0,0,0.3);
+    font-size:14px; min-width:210px;
+  }
+  #hud h2 { font-size:15px; margin-bottom:8px; letter-spacing:0.5px; color:#ffd166;}
+  .task-row { display:flex; align-items:center; gap:8px; margin:4px 0; opacity:0.85; }
+  .task-row.done { opacity:1; color:#7CFC00; }
+  .task-row .dot { width:10px; height:10px; border-radius:50%; background:#555; flex-shrink:0; }
+  .task-row.done .dot { background:#7CFC00; box-shadow:0 0 6px #7CFC00; }
+
+  #controls-hint {
+    position:fixed; bottom:16px; left:16px; z-index:10;
+    background:rgba(20,25,40,0.65); color:#eee; padding:10px 14px;
+    border-radius:12px; font-size:12.5px; line-height:1.6;
+  }
+  #controls-hint b { color:#ffd166; }
+
+  #prompt {
+    position:fixed; bottom:110px; left:50%; transform:translateX(-50%);
+    background:rgba(255,209,102,0.95); color:#1a1a2e; font-weight:700;
+    padding:10px 20px; border-radius:30px; font-size:14px; text-align:center;
+    box-shadow:0 4px 14px rgba(0,0,0,0.35); z-index:10;
+    display:none; max-width:90vw;
+  }
+
+  #startScreen {
+    position:fixed; inset:0; z-index:30;
+    background:radial-gradient(circle at 50% 30%, #2c3e6b, #0d1220 75%);
+    color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:20px;
+  }
+  #startScreen h1 { font-size:34px; margin-bottom:10px; color:#ffd166; }
+  #startScreen p { max-width:540px; margin:6px 0; opacity:0.85; line-height:1.6; font-size:14px;}
+  #startScreen button {
+    margin-top:22px; padding:12px 30px; font-size:16px; font-weight:700;
+    background:#ffd166; color:#1a1a2e; border:none; border-radius:30px; cursor:pointer;
+  }
+  #startScreen button:hover { background:#ffe08a; }
+
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(10,12,20,0.72); z-index:20;
+    display:none; align-items:center; justify-content:center;
+  }
+  .modal-box {
+    background:#181c2b; color:#fff; width:min(480px,90vw); max-height:85vh; overflow:auto;
+    border-radius:18px; padding:24px 26px; box-shadow:0 10px 40px rgba(0,0,0,0.5);
+    border:1px solid rgba(255,255,255,0.08);
+  }
+  .modal-box h2 { color:#ffd166; margin-bottom:6px; font-size:20px;}
+  .modal-box p.sub { opacity:0.75; font-size:13px; margin-bottom:16px;}
+  .close-btn {
+    margin-top:18px; padding:9px 18px; background:#333c58; color:#fff; border:none;
+    border-radius:10px; cursor:pointer; font-size:13px;
+  }
+  .close-btn:hover { background:#414c73; }
+  .primary-btn {
+    padding:9px 18px; background:#ffd166; color:#1a1a2e; border:none;
+    border-radius:10px; cursor:pointer; font-weight:700; font-size:13px;
+  }
+  .primary-btn:hover { background:#ffe08a; }
+  .primary-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+  .feedback { margin-top:12px; font-size:13.5px; font-weight:600; min-height:18px; }
+  .feedback.ok { color:#7CFC00; }
+  .feedback.bad { color:#ff6b6b; }
+
+  #physicsCanvasWrap { display:flex; gap:16px; flex-wrap:wrap; margin-top:10px; }
+  #physicsCanvas { background:#0d1220; border-radius:10px; }
+  .slider-row { margin:10px 0; font-size:12.5px; }
+  .slider-row input { width:100%; }
+
+  .chem-bottles { display:flex; gap:10px; flex-wrap:wrap; margin:14px 0; }
+  .chem-bottle {
+    padding:10px 14px; border-radius:10px; cursor:pointer; font-size:12.5px; font-weight:700;
+    border:2px solid transparent; color:#1a1a2e;
+  }
+  .chem-bottle.used { opacity:0.35; cursor:not-allowed; }
+  .beaker { width:60px; height:80px; margin:10px auto; border:3px solid #aaa; border-top:none;
+    border-radius:0 0 10px 10px; position:relative; overflow:hidden; background:#0d1220;}
+  .beaker .liquid { position:absolute; bottom:0; left:0; right:0; height:15%; background:#666; transition:all 0.6s; }
+
+  .gym-track { position:relative; height:26px; background:#252b42; border-radius:14px; margin:16px 0; overflow:hidden;}
+  .gym-zone { position:absolute; top:0; bottom:0; background:rgba(46,204,113,0.4); border-left:2px solid #2ecc71; border-right:2px solid #2ecc71; }
+  .gym-pointer { position:absolute; top:-4px; width:6px; height:34px; background:#ffd166; border-radius:3px; }
+  .gym-stats { font-size:13px; margin-top:8px; }
+
+  #toast {
+    position:fixed; top:20px; left:50%; transform:translateX(-50%);
+    background:#ffd166; color:#1a1a2e; padding:12px 24px; border-radius:30px;
+    font-weight:700; z-index:40; display:none; box-shadow:0 6px 20px rgba(0,0,0,0.35);
+    text-align:center; max-width:90vw;
+  }
+</style>
+</head>
+<body>
+
+<div id="startScreen">
+  <h1>🏫 Okul Simülasyonu</h1>
+  <p>Karakterini okulun içinde gezdir, farklı odalara girerek derslerle ilgili görevleri tamamla.</p>
+  <p><b>🔬 Fizik Laboratuvarı</b> — atış açısı görevi &nbsp;|&nbsp; <b>🧪 Kimya Laboratuvarı</b> — karışım görevi &nbsp;|&nbsp; <b>🏀 Spor Salonu</b> — basket atışı görevi</p>
+  <p>Hareket: <b>W A S D</b> &nbsp; Koş: <b>Shift</b> &nbsp; Görev başlat: <b>E</b></p>
+  <button id="startBtn">Oyuna Başla</button>
+</div>
+
+<div id="hud">
+  <h2>📋 Görevler</h2>
+  <div class="task-row" id="row-fizik"><div class="dot"></div><span>Fizik Laboratuvarı</span></div>
+  <div class="task-row" id="row-kimya"><div class="dot"></div><span>Kimya Laboratuvarı</span></div>
+  <div class="task-row" id="row-spor"><div class="dot"></div><span>Spor Salonu</span></div>
+</div>
+
+<div id="controls-hint">
+  <b>W A S D</b> hareket &nbsp;•&nbsp; <b>Shift</b> koşma &nbsp;•&nbsp; <b>E</b> görev başlat
+</div>
+
+<div id="prompt"></div>
+<div id="toast"></div>
+
+<!-- FIZIK MODAL -->
+<div class="modal-overlay" id="modal-fizik">
+  <div class="modal-box">
+    <h2>🔬 Fizik Laboratuvarı</h2>
+    <p class="sub">Görev: Topu hedefe düşürecek açı ve gücü ayarla.</p>
+    <div id="physicsCanvasWrap">
+      <canvas id="physicsCanvas" width="260" height="160"></canvas>
+      <div style="flex:1; min-width:180px;">
+        <div class="slider-row">Açı: <span id="angleVal">45</span>°
+          <input type="range" id="angleSlider" min="10" max="80" value="45">
+        </div>
+        <div class="slider-row">Güç: <span id="powerVal">50</span>
+          <input type="range" id="powerSlider" min="20" max="100" value="50">
+        </div>
+        <button class="primary-btn" id="fireBtn">🚀 Fırlat</button>
+        <div class="feedback" id="physicsFeedback"></div>
+      </div>
+    </div>
+    <button class="close-btn" onclick="closeModal('modal-fizik')">Kapat</button>
+  </div>
+</div>
+
+<!-- KIMYA MODAL -->
+<div class="modal-overlay" id="modal-kimya">
+  <div class="modal-box">
+    <h2>🧪 Kimya Laboratuvarı</h2>
+    <p class="sub">Görev: Kimyasalları doğru sırayla ekle → <b>Su → Asit → Katalizör → Baz</b></p>
+    <div class="beaker"><div class="liquid" id="beakerLiquid"></div></div>
+    <div class="chem-bottles" id="chemBottles"></div>
+    <div class="feedback" id="chemFeedback"></div>
+    <button class="close-btn" onclick="closeModal('modal-kimya')">Kapat</button>
+  </div>
+</div>
+
+<!-- SPOR MODAL -->
+<div class="modal-overlay" id="modal-spor">
+  <div class="modal-box">
+    <h2>🏀 Spor Salonu</h2>
+    <p class="sub">Görev: Gösterge yeşil alandayken <b>BOŞLUK</b> tuşuna veya butona bas, 5 atıştan en az 3'ünü tutturma.</p>
+    <div class="gym-track" id="gymTrack">
+      <div class="gym-zone" id="gymZone"></div>
+      <div class="gym-pointer" id="gymPointer"></div>
+    </div>
+    <button class="primary-btn" id="shootBtn">🏀 ATIŞ YAP</button>
+    <div class="gym-stats" id="gymStats">Atış: 0 / 5 — Başarı: 0</div>
+    <div class="feedback" id="gymFeedback"></div>
+    <button class="close-btn" onclick="closeModal('modal-spor')">Kapat</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ============ THREE.JS SAHNE KURULUMU ============ */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x8fd3f4);
+scene.fog = new THREE.Fog(0x8fd3f4, 40, 90);
+
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 500);
+camera.position.set(0, 8, 14);
+
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+/* Işıklar */
+scene.add(new THREE.HemisphereLight(0xbfd9ff, 0x445544, 0.9));
+const sun = new THREE.DirectionalLight(0xffffff, 0.9);
+sun.position.set(20, 30, 10);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left = -35; sun.shadow.camera.right = 35;
+sun.shadow.camera.top = 35; sun.shadow.camera.bottom = -35;
+scene.add(sun);
+
+/* ============ ZEMİN VE ODALAR ============ */
+function addFloor(x,z,w,d,color,y=0){
+  const geo = new THREE.PlaneGeometry(w,d);
+  const mat = new THREE.MeshLambertMaterial({ color });
+  const m = new THREE.Mesh(geo, mat);
+  m.rotation.x = -Math.PI/2;
+  m.position.set(x,y,z);
+  m.receiveShadow = true;
+  scene.add(m);
+  return m;
+}
+function addBox(x,y,z,w,h,d,color,opts={}){
+  const geo = new THREE.BoxGeometry(w,h,d);
+  const mat = new THREE.MeshLambertMaterial({ color, transparent:!!opts.transparent, opacity: opts.opacity ?? 1 });
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(x,y,z);
+  m.castShadow = opts.cast !== false;
+  m.receiveShadow = true;
+  scene.add(m);
+  return m;
+}
+function makeLabel(text, x, y, z, bg="#1a1a2e", fg="#ffd166"){
+  const canvas = document.createElement('canvas');
+  canvas.width = 512; canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = bg; ctx.fillRect(0,0,512,128);
+  ctx.strokeStyle = fg; ctx.lineWidth = 6; ctx.strokeRect(3,3,506,122);
+  ctx.fillStyle = fg; ctx.font = 'bold 46px Segoe UI, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 256, 64);
+  const tex = new THREE.CanvasTexture(canvas);
+  const mat = new THREE.SpriteMaterial({ map: tex });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(8,2,1);
+  sprite.position.set(x,y,z);
+  scene.add(sprite);
+}
+
+// Ana zemin
+addFloor(0,0,60,60,0xd8d4c8);
+// Koridor
+addFloor(0,0,6,48,0xb9b6ac,0.01);
+// Fizik lab (batı)
+addFloor(-15,-8,18,14,0x9fc8e8,0.01);
+makeLabel("FİZİK LAB", -15, 5, -8);
+// Kimya lab (doğu)
+addFloor(15,-8,18,14,0x9fe8b0,0.01);
+makeLabel("KİMYA LAB", 15, 5, -8);
+// Spor salonu (güney)
+addFloor(0,15,34,20,0xf0b98a,0.01);
+makeLabel("SPOR SALONU", 0, 5, 15);
+
+// Dış duvarlar (görsel sınır)
+const wallColor = 0xe4e0d5, wallH = 4;
+addBox(-25,wallH/2,0,0.6,wallH,50,wallColor);
+addBox(25,wallH/2,0,0.6,wallH,50,wallColor);
+addBox(0,wallH/2,-25,50,wallH,0.6,wallColor);
+addBox(0,wallH/2,25,50,wallH,0.6,wallColor);
+
+// Basit oda dekorları
+// Fizik: masa
+addBox(-15,0.9,-8,3,0.15,1.4,0x6b4a35);
+addBox(-15,0.4,-8.5,0.15,0.8,0.15,0x555);
+addBox(-15,0.4,-7.5,0.15,0.8,0.15,0x555);
+// Kimya: masa + şişeler
+addBox(15,0.9,-8,3,0.15,1.4,0x6b4a35);
+[-0.8,0,0.8].forEach((dx,i)=>{
+  const colors=[0xff5555,0x5599ff,0xffdd55];
+  addBox(15+dx,1.15,-8,0.35,0.5,0.35,colors[i]);
+});
+// Spor: pota + top
+addBox(0,2.4,4,2.2,0.1,0.06,0xffffff);
+const hoopGeo = new THREE.TorusGeometry(0.5,0.05,8,24);
+const hoop = new THREE.Mesh(hoopGeo, new THREE.MeshLambertMaterial({color:0xff7700}));
+hoop.rotation.x = Math.PI/2; hoop.position.set(0,2.0,4.5);
+scene.add(hoop);
+const ball = new THREE.Mesh(new THREE.SphereGeometry(0.25,16,16), new THREE.MeshLambertMaterial({color:0xd35400}));
+ball.position.set(0,0.3,8); ball.castShadow = true;
+scene.add(ball);
+
+/* ============ KARAKTER ============ */
+const player = new THREE.Group();
+function addLocal(x,y,z,w,h,d,color){
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), new THREE.MeshLambertMaterial({color}));
+  m.position.set(x,y,z); m.castShadow = true;
+  player.add(m);
+  return m;
+}
+const skin = 0xf1c27d, shirt = 0x3b82f6, pants = 0x2b2f45;
+addLocal(0,1.0,0, 0.6,0.8,0.35, shirt);
+const head = new THREE.Mesh(new THREE.SphereGeometry(0.28,16,16), new THREE.MeshLambertMaterial({color:skin}));
+head.position.set(0,1.65,0); head.castShadow = true; player.add(head);
+const legL = addLocal(-0.16,0.4,0, 0.22,0.8,0.22, pants);
+const legR = addLocal(0.16,0.4,0, 0.22,0.8,0.22, pants);
+const armL = addLocal(-0.42,1.0,0, 0.18,0.7,0.18, shirt);
+const armR = addLocal(0.42,1.0,0, 0.18,0.7,0.18, shirt);
+player.position.set(0,0,-20);
+scene.add(player);
+
+/* ============ GÖREV BÖLGELERİ ============ */
+const zones = [
+  { name:"Fizik Laboratuvarı", key:"fizik", x:-15, z:-8, r:8, modal:"modal-fizik" },
+  { name:"Kimya Laboratuvarı", key:"kimya", x:15, z:-8, r:8, modal:"modal-kimya" },
+  { name:"Spor Salonu", key:"spor", x:0, z:15, r:11, modal:"modal-spor" },
+];
+const completed = { fizik:false, kimya:false, spor:false };
+let currentZone = null;
+
+/* ============ HAREKET KONTROLÜ ============ */
+const keys = {};
+let modalOpen = false;
+let gameStarted = false;
+window.addEventListener('keydown', (e)=>{
+  keys[e.key.toLowerCase()] = true;
+  if (e.key === ' ') e.preventDefault();
+  if (e.key.toLowerCase()==='e' && currentZone && !modalOpen) {
+    openModal(currentZone.modal);
+  }
+  if (e.key === ' ' && modalOpen) {
+    if (document.getElementById('modal-spor').style.display === 'flex') doShoot();
+  }
+});
+window.addEventListener('keyup', (e)=>{ keys[e.key.toLowerCase()] = false; });
+
+const clock = new THREE.Clock();
+let walkT = 0;
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+
+  if (!modalOpen && gameStarted) {
+    const turnSpeed = 2.4, moveSpeed = keys['shift'] ? 8.5 : 4.2;
+    let moving = false;
+    if (keys['a']) player.rotation.y += turnSpeed*dt;
+    if (keys['d']) player.rotation.y -= turnSpeed*dt;
+    const fwd = new THREE.Vector3(Math.sin(player.rotation.y),0,Math.cos(player.rotation.y));
+    if (keys['w']) { player.position.addScaledVector(fwd, moveSpeed*dt); moving = true; }
+    if (keys['s']) { player.position.addScaledVector(fwd, -moveSpeed*0.6*dt); moving = true; }
+
+    player.position.x = Math.max(-24, Math.min(24, player.position.x));
+    player.position.z = Math.max(-24, Math.min(24, player.position.z));
+
+    if (moving) {
+      walkT += dt*10;
+      legL.rotation.x = Math.sin(walkT)*0.6;
+      legR.rotation.x = -Math.sin(walkT)*0.6;
+      armL.rotation.x = -Math.sin(walkT)*0.6;
+      armR.rotation.x = Math.sin(walkT)*0.6;
+    } else {
+      legL.rotation.x *= 0.8; legR.rotation.x *= 0.8;
+      armL.rotation.x *= 0.8; armR.rotation.x *= 0.8;
+    }
+
+    let near = null;
+    for (const z of zones) {
+      const dx = player.position.x - z.x, dz = player.position.z - z.z;
+      if (Math.sqrt(dx*dx+dz*dz) < z.r) { near = z; break; }
+    }
+    currentZone = near;
+    const promptEl = document.getElementById('prompt');
+    if (near && !completed[near.key]) {
+      promptEl.style.display = 'block';
+      promptEl.textContent = `"${near.name}" — Göreve başlamak için E tuşuna bas`;
+    } else if (near && completed[near.key]) {
+      promptEl.style.display = 'block';
+      promptEl.textContent = `"${near.name}" görevi tamamlandı ✓ (tekrar E ile deneyebilirsin)`;
+    } else {
+      promptEl.style.display = 'none';
+    }
+  }
+
+  const camOffset = new THREE.Vector3(Math.sin(player.rotation.y)*-7, 4.2, Math.cos(player.rotation.y)*-7);
+  const desiredCam = player.position.clone().add(camOffset);
+  camera.position.lerp(desiredCam, 0.08);
+  const lookAt = player.position.clone().add(new THREE.Vector3(0,1.4,0));
+  camera.lookAt(lookAt);
+
+  ball.rotation.y += dt;
+
+  renderer.render(scene, camera);
+}
+
+/* ============ BAŞLANGIÇ EKRANI ============ */
+document.getElementById('startBtn').addEventListener('click', ()=>{
+  document.getElementById('startScreen').style.display = 'none';
+  gameStarted = true;
+});
+
+/* ============ MODAL YARDIMCI ============ */
+function openModal(id){
+  document.getElementById(id).style.display = 'flex';
+  modalOpen = true;
+  if (id === 'modal-fizik') initPhysicsTask();
+  if (id === 'modal-kimya') initChemTask();
+  if (id === 'modal-spor') initGymTask();
+}
+function closeModal(id){
+  document.getElementById(id).style.display = 'none';
+  modalOpen = false;
+}
+function markDone(key){
+  completed[key] = true;
+  document.getElementById('row-'+key).classList.add('done');
+  showToast(`✅ ${zones.find(z=>z.key===key).name} görevi tamamlandı!`);
+  if (Object.values(completed).every(Boolean)) {
+    setTimeout(()=>showToast('🎉 Tebrikler! Tüm görevleri tamamladın!'), 1400);
+  }
+}
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>{ t.style.display='none'; }, 2600);
+}
+
+/* ============ FİZİK GÖREVİ ============ */
+let physicsTarget = 0;
+const angleSlider = document.getElementById('angleSlider');
+const powerSlider = document.getElementById('powerSlider');
+function initPhysicsTask(){
+  physicsTarget = Math.round(60 + Math.random()*60);
+  angleSlider.value = 45; powerSlider.value = 50;
+  document.getElementById('angleVal').textContent = 45;
+  document.getElementById('powerVal').textContent = 50;
+  const fb = document.getElementById('physicsFeedback');
+  fb.textContent = `Hedef mesafe: ${physicsTarget} m — açı ve gücü ayarlayıp fırlat!`;
+  fb.className = 'feedback';
+  drawPhysics(45,50,null);
+}
+angleSlider.addEventListener('input', ()=>{ document.getElementById('angleVal').textContent = angleSlider.value; drawPhysics(+angleSlider.value, +powerSlider.value, null); });
+powerSlider.addEventListener('input', ()=>{ document.getElementById('powerVal').textContent = powerSlider.value; drawPhysics(+angleSlider.value, +powerSlider.value, null); });
+
+function drawPhysics(angleDeg, power, resultRange){
+  const canvas = document.getElementById('physicsCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0d1220'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  const groundY = canvas.height - 20;
+  ctx.strokeStyle = '#445'; ctx.beginPath(); ctx.moveTo(0,groundY); ctx.lineTo(canvas.width,groundY); ctx.stroke();
+
+  const targetX = 20 + physicsTarget*0.8;
+  ctx.fillStyle = '#ffd166';
+  ctx.fillRect(Math.min(targetX,canvas.width-6), groundY-24, 4, 24);
+
+  const angleRad = angleDeg*Math.PI/180;
+  const v0 = power*0.35;
+  const g = 9.8;
+  const visualRange = (v0*v0*Math.sin(2*angleRad))/g;
+  ctx.strokeStyle = '#7CFC00'; ctx.lineWidth = 2; ctx.beginPath();
+  for (let t=0; t<=1.01; t+=0.02){
+    const x = 20 + visualRange*0.8*t;
+    const y = groundY - (4*visualRange*0.16)*t*(1-t);
+    if (t===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+
+  if (resultRange !== null){
+    const diff = Math.abs(resultRange - physicsTarget);
+    const fb = document.getElementById('physicsFeedback');
+    if (diff <= 6){
+      fb.textContent = `🎯 İsabet! Menzil: ${resultRange.toFixed(1)} m (Hedef: ${physicsTarget} m)`;
+      fb.className = 'feedback ok';
+      markDone('fizik');
+    } else {
+      fb.textContent = `Menzil: ${resultRange.toFixed(1)} m — Hedef ${physicsTarget} m. Açı/gücü ayarlayıp tekrar dene.`;
+      fb.className = 'feedback bad';
+    }
+  }
+}
+document.getElementById('fireBtn').addEventListener('click', ()=>{
+  const angleDeg = +angleSlider.value, power = +powerSlider.value;
+  const angleRad = angleDeg*Math.PI/180;
+  const v0 = power*0.35;
+  const g = 9.8;
+  const range = (v0*v0*Math.sin(2*angleRad))/g;
+  drawPhysics(angleDeg, power, range);
+});
+
+/* ============ KİMYA GÖREVİ ============ */
+const chemOrder = ["Su","Asit","Katalizör","Baz"];
+const chemColors = { "Su":"#dfe9ff", "Asit":"#ff6b6b", "Katalizör":"#ffd166", "Baz":"#6bc4ff" };
+let chemProgress = 0;
+function initChemTask(){
+  chemProgress = 0;
+  document.getElementById('chemFeedback').textContent = '';
+  document.getElementById('beakerLiquid').style.background = '#666';
+  document.getElementById('beakerLiquid').style.height = '15%';
+  const wrap = document.getElementById('chemBottles');
+  wrap.innerHTML = '';
+  const shuffled = [...chemOrder].sort(()=>Math.random()-0.5);
+  shuffled.forEach(name=>{
+    const btn = document.createElement('button');
+    btn.className = 'chem-bottle';
+    btn.textContent = name;
+    btn.style.background = chemColors[name];
+    btn.onclick = ()=> chemClick(name, btn);
+    wrap.appendChild(btn);
+  });
+}
+function chemClick(name, btn){
+  const fb = document.getElementById('chemFeedback');
+  if (name === chemOrder[chemProgress]){
+    btn.classList.add('used'); btn.disabled = true;
+    chemProgress++;
+    document.getElementById('beakerLiquid').style.height = (15+chemProgress*21)+'%';
+    document.getElementById('beakerLiquid').style.background = chemColors[name];
+    fb.textContent = `✔ Doğru: ${name} eklendi (${chemProgress}/${chemOrder.length})`;
+    fb.className = 'feedback ok';
+    if (chemProgress === chemOrder.length){
+      fb.textContent = '🧪 Tepkime başarılı! Karışım tamamlandı.';
+      document.getElementById('beakerLiquid').style.background = '#7CFC00';
+      markDone('kimya');
+    }
+  } else {
+    fb.textContent = `✘ Yanlış sıra! Baştan başlıyorsun.`;
+    fb.className = 'feedback bad';
+    chemProgress = 0;
+    document.getElementById('beakerLiquid').style.height = '15%';
+    document.getElementById('beakerLiquid').style.background = '#666';
+    document.querySelectorAll('#chemBottles .chem-bottle').forEach(b=>{ b.classList.remove('used'); b.disabled=false; });
+  }
+}
+
+/* ============ SPOR GÖREVİ ============ */
+let gymAttempts = 0, gymSuccess = 0, gymAnim = null, gymPos = 0, gymDir = 1;
+const gymZoneStart = 40, gymZoneEnd = 60;
+function initGymTask(){
+  gymAttempts = 0; gymSuccess = 0; gymPos = 0; gymDir = 1;
+  document.getElementById('gymStats').textContent = 'Atış: 0 / 5 — Başarı: 0';
+  document.getElementById('gymFeedback').textContent = '';
+  document.getElementById('gymZone').style.left = gymZoneStart+'%';
+  document.getElementById('gymZone').style.width = (gymZoneEnd-gymZoneStart)+'%';
+  document.getElementById('shootBtn').disabled = false;
+  if (gymAnim) cancelAnimationFrame(gymAnim);
+  animateGym();
+}
+function animateGym(){
+  gymPos += gymDir*2.2;
+  if (gymPos >= 100){ gymPos = 100; gymDir = -1; }
+  if (gymPos <= 0){ gymPos = 0; gymDir = 1; }
+  document.getElementById('gymPointer').style.left = gymPos+'%';
+  gymAnim = requestAnimationFrame(animateGym);
+}
+document.getElementById('shootBtn').addEventListener('click', doShoot);
+function doShoot(){
+  if (gymAttempts >= 5) return;
+  gymAttempts++;
+  const hit = gymPos >= gymZoneStart && gymPos <= gymZoneEnd;
+  if (hit) gymSuccess++;
+  const fb = document.getElementById('gymFeedback');
+  fb.textContent = hit ? '🏀 Basket!' : '❌ Kaçırdın!';
+  fb.className = 'feedback ' + (hit?'ok':'bad');
+  document.getElementById('gymStats').textContent = `Atış: ${gymAttempts} / 5 — Başarı: ${gymSuccess}`;
+  if (gymAttempts >= 5){
+    document.getElementById('shootBtn').disabled = true;
+    if (gymSuccess >= 3){
+      fb.textContent += ` — Harika! ${gymSuccess}/5 ile görev tamamlandı.`;
+      markDone('spor');
+    } else {
+      fb.textContent += ` — ${gymSuccess}/5 oldu, en az 3 gerekiyor. Kapatıp tekrar dene.`;
+    }
+  }
+}
+
+animate();
+</script>
+</body>
+</html>
