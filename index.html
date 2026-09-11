@@ -24,7 +24,7 @@
   #controls-hint {
     position:fixed; bottom:16px; left:16px; z-index:10;
     background:rgba(20,25,40,0.65); color:#eee; padding:10px 14px;
-    border-radius:12px; font-size:12.5px; line-height:1.6;
+    border-radius:12px; font-size:12.5px; line-height:1.6; max-width:260px;
   }
   #controls-hint b { color:#ffd166; }
 
@@ -36,6 +36,16 @@
     display:none; max-width:90vw;
   }
 
+  #dialogBox {
+    position:fixed; bottom:110px; left:50%; transform:translateX(-50%);
+    background:rgba(24,28,43,0.96); color:#fff; padding:16px 22px; border-radius:16px;
+    max-width:420px; width:90vw; z-index:15; box-shadow:0 6px 20px rgba(0,0,0,0.4);
+    border:1px solid rgba(255,209,102,0.4); display:none;
+  }
+  #dialogName { color:#ffd166; font-weight:700; margin-bottom:6px; font-size:14px;}
+  #dialogText { font-size:14px; line-height:1.5; margin-bottom:8px;}
+  .dialog-hint { font-size:11.5px; opacity:0.6;}
+
   #startScreen {
     position:fixed; inset:0; z-index:30;
     background:radial-gradient(circle at 50% 30%, #2c3e6b, #0d1220 75%);
@@ -43,7 +53,7 @@
     text-align:center; padding:20px;
   }
   #startScreen h1 { font-size:34px; margin-bottom:10px; color:#ffd166; }
-  #startScreen p { max-width:540px; margin:6px 0; opacity:0.85; line-height:1.6; font-size:14px;}
+  #startScreen p { max-width:560px; margin:6px 0; opacity:0.85; line-height:1.6; font-size:14px;}
   #startScreen button {
     margin-top:22px; padding:12px 30px; font-size:16px; font-weight:700;
     background:#ffd166; color:#1a1a2e; border:none; border-radius:30px; cursor:pointer;
@@ -109,30 +119,35 @@
 
 <div id="startScreen">
   <h1>🏫 Okul Simülasyonu</h1>
-  <p>Karakterini okulun içinde gezdir, farklı odalara girerek derslerle ilgili görevleri tamamla.</p>
-  <p><b>🔬 Fizik Laboratuvarı</b> — atış açısı görevi &nbsp;|&nbsp; <b>🧪 Kimya Laboratuvarı</b> — karışım görevi &nbsp;|&nbsp; <b>🏀 Spor Salonu</b> — basket atışı görevi</p>
-  <p>Hareket: <b>W A S D</b> &nbsp; Koş: <b>Shift</b> &nbsp; Görev başlat: <b>E</b></p>
+  <p>Karakterini okul bahçesinde ve sınıflarda gezdir. Derslerle ilgili görevleri tamamla, öğretmen ve öğrencilerle konuş, banklarda otur.</p>
+  <p><b>🔬 Fizik Sınıfı</b> — atış açısı görevi &nbsp;|&nbsp; <b>🧪 Kimya Sınıfı</b> — karışım görevi &nbsp;|&nbsp; <b>🏀 Spor Salonu</b> — basket atışı görevi</p>
+  <p>Hareket: <b>W A S D</b> &nbsp; Koş: <b>Shift</b> &nbsp; Etkileşim (görev / konuşma / oturma): <b>E</b></p>
   <button id="startBtn">Oyuna Başla</button>
 </div>
 
 <div id="hud">
   <h2>📋 Görevler</h2>
-  <div class="task-row" id="row-fizik"><div class="dot"></div><span>Fizik Laboratuvarı</span></div>
-  <div class="task-row" id="row-kimya"><div class="dot"></div><span>Kimya Laboratuvarı</span></div>
+  <div class="task-row" id="row-fizik"><div class="dot"></div><span>Fizik Sınıfı</span></div>
+  <div class="task-row" id="row-kimya"><div class="dot"></div><span>Kimya Sınıfı</span></div>
   <div class="task-row" id="row-spor"><div class="dot"></div><span>Spor Salonu</span></div>
 </div>
 
 <div id="controls-hint">
-  <b>W A S D</b> hareket &nbsp;•&nbsp; <b>Shift</b> koşma &nbsp;•&nbsp; <b>E</b> görev başlat
+  <b>W A S D</b> hareket &nbsp;•&nbsp; <b>Shift</b> koşma &nbsp;•&nbsp; <b>E</b> görev / konuşma / oturma
 </div>
 
 <div id="prompt"></div>
+<div id="dialogBox">
+  <div id="dialogName"></div>
+  <div id="dialogText"></div>
+  <div class="dialog-hint">Kapatmak için E tuşuna bas</div>
+</div>
 <div id="toast"></div>
 
 <!-- FIZIK MODAL -->
 <div class="modal-overlay" id="modal-fizik">
   <div class="modal-box">
-    <h2>🔬 Fizik Laboratuvarı</h2>
+    <h2>🔬 Fizik Sınıfı</h2>
     <p class="sub">Görev: Topu hedefe düşürecek açı ve gücü ayarla.</p>
     <div id="physicsCanvasWrap">
       <canvas id="physicsCanvas" width="260" height="160"></canvas>
@@ -154,7 +169,7 @@
 <!-- KIMYA MODAL -->
 <div class="modal-overlay" id="modal-kimya">
   <div class="modal-box">
-    <h2>🧪 Kimya Laboratuvarı</h2>
+    <h2>🧪 Kimya Sınıfı</h2>
     <p class="sub">Görev: Kimyasalları doğru sırayla ekle → <b>Su → Asit → Katalizör → Baz</b></p>
     <div class="beaker"><div class="liquid" id="beakerLiquid"></div></div>
     <div class="chem-bottles" id="chemBottles"></div>
@@ -181,13 +196,13 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-/* ============ THREE.JS SAHNE KURULUMU ============ */
+/* ============ TEMEL SAHNE ============ */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x8fd3f4);
-scene.fog = new THREE.Fog(0x8fd3f4, 40, 90);
+scene.fog = new THREE.Fog(0x8fd3f4, 45, 100);
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 500);
-camera.position.set(0, 8, 14);
+camera.position.set(0, 8, 20);
 
 const renderer = new THREE.WebGLRenderer({ antialias:true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -201,17 +216,17 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-/* Işıklar */
 scene.add(new THREE.HemisphereLight(0xbfd9ff, 0x445544, 0.9));
 const sun = new THREE.DirectionalLight(0xffffff, 0.9);
-sun.position.set(20, 30, 10);
+sun.position.set(25, 35, 15);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048,2048);
-sun.shadow.camera.left = -35; sun.shadow.camera.right = 35;
-sun.shadow.camera.top = 35; sun.shadow.camera.bottom = -35;
+sun.shadow.camera.left = -40; sun.shadow.camera.right = 40;
+sun.shadow.camera.top = 40; sun.shadow.camera.bottom = -40;
 scene.add(sun);
 
-/* ============ ZEMİN VE ODALAR ============ */
+/* ============ YARDIMCI FONKSİYONLAR ============ */
+const colliders = [];
 function addFloor(x,z,w,d,color,y=0){
   const geo = new THREE.PlaneGeometry(w,d);
   const mat = new THREE.MeshLambertMaterial({ color });
@@ -224,112 +239,306 @@ function addFloor(x,z,w,d,color,y=0){
 }
 function addBox(x,y,z,w,h,d,color,opts={}){
   const geo = new THREE.BoxGeometry(w,h,d);
-  const mat = new THREE.MeshLambertMaterial({ color, transparent:!!opts.transparent, opacity: opts.opacity ?? 1 });
+  const mat = new THREE.MeshLambertMaterial({ color });
   const m = new THREE.Mesh(geo, mat);
   m.position.set(x,y,z);
-  m.castShadow = opts.cast !== false;
+  m.castShadow = true;
   m.receiveShadow = true;
   scene.add(m);
+  if (opts.collider) {
+    colliders.push({ minX:x-w/2-0.15, maxX:x+w/2+0.15, minZ:z-d/2-0.15, maxZ:z+d/2+0.15 });
+  }
   return m;
 }
-function makeLabel(text, x, y, z, bg="#1a1a2e", fg="#ffd166"){
+function makeTextSprite(text, bg, fg){
   const canvas = document.createElement('canvas');
   canvas.width = 512; canvas.height = 128;
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = bg; ctx.fillRect(0,0,512,128);
   ctx.strokeStyle = fg; ctx.lineWidth = 6; ctx.strokeRect(3,3,506,122);
-  ctx.fillStyle = fg; ctx.font = 'bold 46px Segoe UI, sans-serif';
+  ctx.fillStyle = fg; ctx.font = 'bold 44px Segoe UI, sans-serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(text, 256, 64);
   const tex = new THREE.CanvasTexture(canvas);
-  const mat = new THREE.SpriteMaterial({ map: tex });
-  const sprite = new THREE.Sprite(mat);
-  sprite.scale.set(8,2,1);
-  sprite.position.set(x,y,z);
-  scene.add(sprite);
+  return new THREE.Sprite(new THREE.SpriteMaterial({ map: tex }));
+}
+function makeLabel(text, x, y, z, bg="#1a1a2e", fg="#ffd166"){
+  const s = makeTextSprite(text, bg, fg);
+  s.scale.set(8,2,1); s.position.set(x,y,z);
+  scene.add(s);
+}
+function makeNameTag(text){
+  const s = makeTextSprite(text, "#1a1a2e", "#ffffff");
+  s.scale.set(1.6,0.4,1);
+  return s;
+}
+function buildHumanoid(shirtColor){
+  const group = new THREE.Group();
+  function b(x,y,z,w,h,d,c){
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), new THREE.MeshLambertMaterial({color:c}));
+    m.position.set(x,y,z); m.castShadow = true;
+    group.add(m); return m;
+  }
+  b(0,1.0,0, 0.6,0.8,0.35, shirtColor);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.28,16,16), new THREE.MeshLambertMaterial({color:0xf1c27d}));
+  head.position.set(0,1.65,0); head.castShadow = true; group.add(head);
+  const legL = b(-0.16,0.4,0, 0.22,0.8,0.22, 0x2b2f45);
+  const legR = b(0.16,0.4,0, 0.22,0.8,0.22, 0x2b2f45);
+  const armL = b(-0.42,1.0,0, 0.18,0.7,0.18, shirtColor);
+  const armR = b(0.42,1.0,0, 0.18,0.7,0.18, shirtColor);
+  return { group, legL, legR, armL, armR };
 }
 
-// Ana zemin
-addFloor(0,0,60,60,0xd8d4c8);
-// Koridor
-addFloor(0,0,6,48,0xb9b6ac,0.01);
-// Fizik lab (batı)
-addFloor(-15,-8,18,14,0x9fc8e8,0.01);
-makeLabel("FİZİK LAB", -15, 5, -8);
-// Kimya lab (doğu)
-addFloor(15,-8,18,14,0x9fe8b0,0.01);
-makeLabel("KİMYA LAB", 15, 5, -8);
-// Spor salonu (güney)
-addFloor(0,15,34,20,0xf0b98a,0.01);
-makeLabel("SPOR SALONU", 0, 5, 15);
+/* ============ ODA İNŞASI (duvar + kapı boşluğu) ============ */
+function buildRoom(cx, cz, w, d, color, doorWall){
+  const h = 3.4, t = 0.35, doorWidth = 3.2;
+  const halfW = w/2, halfD = d/2;
+  function seg(scx, scz, len, horizontal){
+    if (horizontal) addBox(scx, h/2, scz, len, h, t, color, {collider:true});
+    else addBox(scx, h/2, scz, t, h, len, color, {collider:true});
+  }
+  // kuzey duvar
+  if (doorWall==='north'){ const sl=(w-doorWidth)/2; seg(cx-w/2+sl/2, cz-halfD, sl, true); seg(cx+w/2-sl/2, cz-halfD, sl, true); }
+  else seg(cx, cz-halfD, w, true);
+  // güney duvar
+  if (doorWall==='south'){ const sl=(w-doorWidth)/2; seg(cx-w/2+sl/2, cz+halfD, sl, true); seg(cx+w/2-sl/2, cz+halfD, sl, true); }
+  else seg(cx, cz+halfD, w, true);
+  // doğu duvar
+  if (doorWall==='east'){ const sl=(d-doorWidth)/2; seg(cx+halfW, cz-d/2+sl/2, sl, false); seg(cx+halfW, cz+d/2-sl/2, sl, false); }
+  else seg(cx+halfW, cz, d, false);
+  // batı duvar
+  if (doorWall==='west'){ const sl=(d-doorWidth)/2; seg(cx-halfW, cz-d/2+sl/2, sl, false); seg(cx-halfW, cz+d/2-sl/2, sl, false); }
+  else seg(cx-halfW, cz, d, false);
+}
 
-// Dış duvarlar (görsel sınır)
-const wallColor = 0xe4e0d5, wallH = 4;
-addBox(-25,wallH/2,0,0.6,wallH,50,wallColor);
-addBox(25,wallH/2,0,0.6,wallH,50,wallColor);
-addBox(0,wallH/2,-25,50,wallH,0.6,wallColor);
-addBox(0,wallH/2,25,50,wallH,0.6,wallColor);
+/* ============ ZEMİNLER ============ */
+addFloor(0,-19,52,30,0xe4ddc8);           // bina temel zemini
+addFloor(-16,-12,20,16,0x9fc8e8,0.01);    // fizik zemini
+addFloor(16,-12,20,16,0x9fe8b0,0.01);     // kimya zemini
+addFloor(0,-27,52,14,0xf0b98a,0.01);      // spor salonu zemini
+addFloor(0,-10,12,20,0xb9b6ac,0.02);      // koridor
+addFloor(0,17,60,34,0x6fbf6f,0);          // okul bahçesi (çim)
 
-// Basit oda dekorları
-// Fizik: masa
-addBox(-15,0.9,-8,3,0.15,1.4,0x6b4a35);
-addBox(-15,0.4,-8.5,0.15,0.8,0.15,0x555);
-addBox(-15,0.4,-7.5,0.15,0.8,0.15,0x555);
-// Kimya: masa + şişeler
-addBox(15,0.9,-8,3,0.15,1.4,0x6b4a35);
+/* ============ ODALAR ============ */
+buildRoom(-16,-12,20,16,0xcfe8ff,'east');   // Fizik Sınıfı
+buildRoom(16,-12,20,16,0xd6f5df,'west');    // Kimya Sınıfı
+buildRoom(0,-27,52,14,0xffe3c2,'south');    // Spor Salonu
+
+makeLabel("FİZİK SINIFI", -16, 5.2, -12);
+makeLabel("KİMYA SINIFI", 16, 5.2, -12);
+makeLabel("SPOR SALONU", 0, 5.2, -27);
+
+/* ============ FİZİK SINIFI EŞYALARI ============ */
+addBox(-22,1.6,-19.3,3.2,2.2,0.5,0x7a5230,{collider:true}); // raf
+const fizikBookColors=[0xff5555,0x5599ff,0xffdd55,0x9b59b6];
+fizikBookColors.forEach((c,i)=> addBox(-23.2+i*0.85,2.5,-19.3,0.55,0.5,0.35,c));
+addBox(-16,2,-19.3,6,2.2,0.15,0xffffff); // beyaz tahta
+addBox(-16,0.9,-7,3,0.15,1.4,0x6b4a35,{collider:true}); // masa
+addBox(-16,0.4,-7.6,0.15,0.8,0.15,0x555555);
+addBox(-16,0.4,-6.4,0.15,0.8,0.15,0x555555);
+const fizikBall = new THREE.Mesh(new THREE.SphereGeometry(0.12,12,12), new THREE.MeshLambertMaterial({color:0xffd166}));
+fizikBall.position.set(-16,0.55,-7); scene.add(fizikBall);
+
+/* ============ KİMYA SINIFI EŞYALARI ============ */
+addBox(22,1.6,-19.3,3.2,2.2,0.5,0x7a5230,{collider:true}); // raf
+[[-0.7,0xff5555],[0,0x5599ff],[0.7,0xffdd55]].forEach(([dx,c])=>{
+  const bot = new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.18,0.5,10), new THREE.MeshLambertMaterial({color:c}));
+  bot.position.set(22+dx,2.55,-19.3); bot.castShadow=true; scene.add(bot);
+});
+addBox(10,1.2,-19.3,2.5,1.6,1,0xd8d8d8,{collider:true}); // çeker ocak
+addBox(16,0.9,-7,3,0.15,1.4,0x6b4a35,{collider:true}); // masa
 [-0.8,0,0.8].forEach((dx,i)=>{
   const colors=[0xff5555,0x5599ff,0xffdd55];
-  addBox(15+dx,1.15,-8,0.35,0.5,0.35,colors[i]);
+  addBox(16+dx,1.15,-7,0.35,0.5,0.35,colors[i]);
 });
-// Spor: pota + top
-addBox(0,2.4,4,2.2,0.1,0.06,0xffffff);
-const hoopGeo = new THREE.TorusGeometry(0.5,0.05,8,24);
-const hoop = new THREE.Mesh(hoopGeo, new THREE.MeshLambertMaterial({color:0xff7700}));
-hoop.rotation.x = Math.PI/2; hoop.position.set(0,2.0,4.5);
+
+/* ============ SPOR SALONU EŞYALARI ============ */
+addBox(0,0.3,-33.4,44,0.6,1.2,0x8fa3bf,{collider:true});
+addBox(0,0.9,-32.0,44,0.6,1.2,0x7d93b3,{collider:true});
+addBox(0,1.5,-30.6,44,0.6,1.2,0x6c81a0,{collider:true});
+addBox(0,2.4,-21.4,2.2,0.1,0.06,0xffffff);
+const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.5,0.05,8,24), new THREE.MeshLambertMaterial({color:0xff7700}));
+hoop.rotation.x = Math.PI/2; hoop.position.set(0,2.0,-21.0);
 scene.add(hoop);
 const ball = new THREE.Mesh(new THREE.SphereGeometry(0.25,16,16), new THREE.MeshLambertMaterial({color:0xd35400}));
-ball.position.set(0,0.3,8); ball.castShadow = true;
+ball.position.set(0,0.3,-24); ball.castShadow = true;
 scene.add(ball);
+addBox(-15,0.06,-25,4,0.12,2,0x3355aa);
+addBox(15,0.06,-25,4,0.12,2,0xaa3355);
 
-/* ============ KARAKTER ============ */
-const player = new THREE.Group();
-function addLocal(x,y,z,w,h,d,color){
-  const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), new THREE.MeshLambertMaterial({color}));
-  m.position.set(x,y,z); m.castShadow = true;
-  player.add(m);
-  return m;
+/* ============ BAHÇE: AĞAÇLAR, BAYRAK ============ */
+function addTree(x,z){
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.32,2,8), new THREE.MeshLambertMaterial({color:0x8a5a2b}));
+  trunk.position.set(x,1,z); trunk.castShadow=true; scene.add(trunk);
+  const leaves = new THREE.Mesh(new THREE.SphereGeometry(1.4,10,10), new THREE.MeshLambertMaterial({color:0x2f8f4f}));
+  leaves.position.set(x,2.7,z); leaves.castShadow=true; scene.add(leaves);
+  colliders.push({minX:x-0.35,maxX:x+0.35,minZ:z-0.35,maxZ:z+0.35});
 }
-const skin = 0xf1c27d, shirt = 0x3b82f6, pants = 0x2b2f45;
-addLocal(0,1.0,0, 0.6,0.8,0.35, shirt);
-const head = new THREE.Mesh(new THREE.SphereGeometry(0.28,16,16), new THREE.MeshLambertMaterial({color:skin}));
-head.position.set(0,1.65,0); head.castShadow = true; player.add(head);
-const legL = addLocal(-0.16,0.4,0, 0.22,0.8,0.22, pants);
-const legR = addLocal(0.16,0.4,0, 0.22,0.8,0.22, pants);
-const armL = addLocal(-0.42,1.0,0, 0.18,0.7,0.18, shirt);
-const armR = addLocal(0.42,1.0,0, 0.18,0.7,0.18, shirt);
-player.position.set(0,0,-20);
+[[-22,10],[22,10],[-25,22],[25,22],[-14,28],[14,28],[0,32]].forEach(p=>addTree(p[0],p[1]));
+
+const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,5,8), new THREE.MeshLambertMaterial({color:0x999999}));
+pole.position.set(0,2.5,2); scene.add(pole);
+colliders.push({minX:-0.3,maxX:0.3,minZ:1.7,maxZ:2.3});
+const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.2,0.7), new THREE.MeshLambertMaterial({color:0xdd3333, side:THREE.DoubleSide}));
+flag.position.set(0.65,4.3,2); scene.add(flag);
+
+/* ============ BANKLAR ============ */
+const benches = [];
+function addBench(x,z,rotY){
+  const group = new THREE.Group();
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(1.8,0.15,0.6), new THREE.MeshLambertMaterial({color:0x8a5a2b}));
+  seat.position.set(0,0.5,0); seat.castShadow=true; group.add(seat);
+  const back = new THREE.Mesh(new THREE.BoxGeometry(1.8,0.6,0.12), new THREE.MeshLambertMaterial({color:0x8a5a2b}));
+  back.position.set(0,0.85,-0.24); back.castShadow=true; group.add(back);
+  [[-0.8,-0.2],[0.8,-0.2],[-0.8,0.2],[0.8,0.2]].forEach(([lx,lz])=>{
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.12,0.5,0.12), new THREE.MeshLambertMaterial({color:0x5a3a1b}));
+    leg.position.set(lx,0.25,lz); group.add(leg);
+  });
+  group.position.set(x,0,z); group.rotation.y = rotY;
+  scene.add(group);
+  colliders.push({minX:x-0.95,maxX:x+0.95,minZ:z-0.95,maxZ:z+0.95});
+  benches.push({ x, z, rot: rotY });
+}
+addBench(-14,9,Math.PI/2);
+addBench(0,24,0);
+addBench(13,9,-Math.PI/2);
+
+/* ============ OYUNCU ============ */
+const playerParts = buildHumanoid(0x3b82f6);
+const player = playerParts.group;
+const legL = playerParts.legL, legR = playerParts.legR, armL = playerParts.armL, armR = playerParts.armR;
+player.position.set(0,0,12);
+player.rotation.y = Math.PI;
 scene.add(player);
+
+/* ============ NPC'LER ============ */
+const npcs = [];
+function addNPC(name, color, bounds, lines, startPos, speed, isStatic){
+  const parts = buildHumanoid(color);
+  parts.group.position.set(startPos.x,0,startPos.z);
+  const tag = makeNameTag(name);
+  tag.position.set(0,2.2,0);
+  parts.group.add(tag);
+  scene.add(parts.group);
+  const npc = { parts, name, lines, bounds, speed: speed||1.4, walkT: Math.random()*10, static: !!isStatic };
+  npc.target = isStatic ? {x:startPos.x,z:startPos.z} :
+    { x: bounds.x0 + Math.random()*(bounds.x1-bounds.x0), z: bounds.z0 + Math.random()*(bounds.z1-bounds.z0) };
+  npcs.push(npc);
+  return npc;
+}
+addNPC("Ahmet Hoca", 0xffffff, {x0:-24,x1:-9,z0:-18,z1:-6},
+  ["Merhaba! Fizik sınıfına hoş geldin.","Açı ve gücü dikkatli ayarla, deneyi tutturursun.","Fizik aslında hayatın her yerinde!"],
+  {x:-16,z:-10});
+addNPC("Elif Hoca", 0x2ecc71, {x0:9,x1:24,z0:-18,z1:-6},
+  ["Kimyada sıralama her şeydir, dikkatli ol.","Doğru karışımı bulunca tepkime başarılı olur.","Güvenlik gözlüğünü takmayı unutma!"],
+  {x:16,z:-10});
+addNPC("Kaan Hoca", 0xe74c3c, {x0:-22,x1:22,z0:-32,z1:-22},
+  ["Haydi biraz spor yapalım!","Zamanlamanı iyi ayarla, potaya odaklan.","Spor sağlıklı bir yaşamın anahtarıdır."],
+  {x:0,z:-27});
+addNPC("Mert", 0xf39c12, {x0:-25,x1:25,z0:6,z1:30},
+  ["Selam! Bugün hava çok güzel değil mi?","Teneffüste basket oynamaya ne dersin?","Derslerin nasıl gidiyor?"],
+  {x:5,z:14});
+addNPC("Zeynep", 0x9b59b6, null,
+  ["Burada oturup dinleniyorum, sen de bir banka oturabilirsin.","Bahçe çok huzurlu değil mi?"],
+  {x:12.8,z:9.6}, 0, true);
+
+function updateNPC(npc, dt){
+  if (npc.static) return;
+  const p = npc.parts.group.position;
+  const dx = npc.target.x - p.x, dz = npc.target.z - p.z;
+  const dist = Math.hypot(dx,dz);
+  if (dist < 0.4){
+    npc.target = { x: npc.bounds.x0 + Math.random()*(npc.bounds.x1-npc.bounds.x0), z: npc.bounds.z0 + Math.random()*(npc.bounds.z1-npc.bounds.z0) };
+    return;
+  }
+  const dirX = dx/dist, dirZ = dz/dist;
+  p.x += dirX*npc.speed*dt;
+  p.z += dirZ*npc.speed*dt;
+  npc.parts.group.rotation.y = Math.atan2(dirX,dirZ);
+  npc.walkT += dt*8;
+  npc.parts.legL.rotation.x = Math.sin(npc.walkT)*0.5;
+  npc.parts.legR.rotation.x = -Math.sin(npc.walkT)*0.5;
+  npc.parts.armL.rotation.x = -Math.sin(npc.walkT)*0.5;
+  npc.parts.armR.rotation.x = Math.sin(npc.walkT)*0.5;
+}
 
 /* ============ GÖREV BÖLGELERİ ============ */
 const zones = [
-  { name:"Fizik Laboratuvarı", key:"fizik", x:-15, z:-8, r:8, modal:"modal-fizik" },
-  { name:"Kimya Laboratuvarı", key:"kimya", x:15, z:-8, r:8, modal:"modal-kimya" },
-  { name:"Spor Salonu", key:"spor", x:0, z:15, r:11, modal:"modal-spor" },
+  { name:"Fizik Sınıfı", key:"fizik", x:-16, z:-7, r:6, modal:"modal-fizik" },
+  { name:"Kimya Sınıfı", key:"kimya", x:16, z:-7, r:6, modal:"modal-kimya" },
+  { name:"Spor Salonu", key:"spor", x:0, z:-24, r:8, modal:"modal-spor" },
 ];
 const completed = { fizik:false, kimya:false, spor:false };
-let currentZone = null;
+let currentInteractable = null;
 
-/* ============ HAREKET KONTROLÜ ============ */
+/* ============ DURUM DEĞİŞKENLERİ ============ */
 const keys = {};
 let modalOpen = false;
 let gameStarted = false;
-window.addEventListener('keydown', (e)=>{
-  keys[e.key.toLowerCase()] = true;
-  if (e.key === ' ') e.preventDefault();
-  if (e.key.toLowerCase()==='e' && currentZone && !modalOpen) {
-    openModal(currentZone.modal);
+let dialogNpc = null;
+let sittingNow = false;
+let preSit = {x:0,z:0,rot:0};
+
+function collides(x,z){
+  const pr = 0.35;
+  for (const c of colliders){
+    if (x+pr > c.minX && x-pr < c.maxX && z+pr > c.minZ && z-pr < c.maxZ) return true;
   }
-  if (e.key === ' ' && modalOpen) {
+  return false;
+}
+function computeNearestInteractable(){
+  let nearest=null, nd=Infinity;
+  for (const z of zones){
+    const d = Math.hypot(player.position.x-z.x, player.position.z-z.z);
+    if (d<z.r && d<nd){ nearest={type:'task',data:z}; nd=d; }
+  }
+  for (const n of npcs){
+    const d = Math.hypot(player.position.x-n.parts.group.position.x, player.position.z-n.parts.group.position.z);
+    if (d<2.4 && d<nd){ nearest={type:'npc',data:n}; nd=d; }
+  }
+  for (const b of benches){
+    const d = Math.hypot(player.position.x-b.x, player.position.z-b.z);
+    if (d<2.2 && d<nd){ nearest={type:'bench',data:b}; nd=d; }
+  }
+  return nearest;
+}
+function openDialog(npc){
+  dialogNpc = npc; modalOpen = true;
+  document.getElementById('dialogName').textContent = npc.name;
+  document.getElementById('dialogText').textContent = npc.lines[Math.floor(Math.random()*npc.lines.length)];
+  document.getElementById('dialogBox').style.display = 'block';
+}
+function closeDialog(){
+  dialogNpc = null; modalOpen = false;
+  document.getElementById('dialogBox').style.display = 'none';
+}
+function sitDown(bench){
+  preSit = { x: player.position.x, z: player.position.z, rot: player.rotation.y };
+  sittingNow = true;
+  player.position.set(bench.x, 0, bench.z);
+  player.rotation.y = bench.rot;
+}
+function standUp(){
+  sittingNow = false;
+  player.position.set(preSit.x, 0, preSit.z);
+  player.rotation.y = preSit.rot;
+}
+
+window.addEventListener('keydown', (e)=>{
+  const k = e.key.toLowerCase();
+  keys[k] = true;
+  if (e.key === ' ') e.preventDefault();
+  if (k === 'e'){
+    if (sittingNow){ standUp(); return; }
+    if (dialogNpc){ closeDialog(); return; }
+    if (!modalOpen && currentInteractable){
+      const it = currentInteractable;
+      if (it.type === 'task') openModal(it.data.modal);
+      else if (it.type === 'npc') openDialog(it.data);
+      else if (it.type === 'bench') sitDown(it.data);
+    }
+  }
+  if (e.key === ' ' && modalOpen){
     if (document.getElementById('modal-spor').style.display === 'flex') doShoot();
   }
 });
@@ -342,54 +551,69 @@ function animate(){
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
 
-  if (!modalOpen && gameStarted) {
-    const turnSpeed = 2.4, moveSpeed = keys['shift'] ? 8.5 : 4.2;
-    let moving = false;
-    if (keys['a']) player.rotation.y += turnSpeed*dt;
-    if (keys['d']) player.rotation.y -= turnSpeed*dt;
-    const fwd = new THREE.Vector3(Math.sin(player.rotation.y),0,Math.cos(player.rotation.y));
-    if (keys['w']) { player.position.addScaledVector(fwd, moveSpeed*dt); moving = true; }
-    if (keys['s']) { player.position.addScaledVector(fwd, -moveSpeed*0.6*dt); moving = true; }
+  npcs.forEach(n=>updateNPC(n,dt));
 
-    player.position.x = Math.max(-24, Math.min(24, player.position.x));
-    player.position.z = Math.max(-24, Math.min(24, player.position.z));
+  const promptEl = document.getElementById('prompt');
 
-    if (moving) {
-      walkT += dt*10;
-      legL.rotation.x = Math.sin(walkT)*0.6;
-      legR.rotation.x = -Math.sin(walkT)*0.6;
-      armL.rotation.x = -Math.sin(walkT)*0.6;
-      armR.rotation.x = Math.sin(walkT)*0.6;
-    } else {
-      legL.rotation.x *= 0.8; legR.rotation.x *= 0.8;
-      armL.rotation.x *= 0.8; armR.rotation.x *= 0.8;
-    }
-
-    let near = null;
-    for (const z of zones) {
-      const dx = player.position.x - z.x, dz = player.position.z - z.z;
-      if (Math.sqrt(dx*dx+dz*dz) < z.r) { near = z; break; }
-    }
-    currentZone = near;
-    const promptEl = document.getElementById('prompt');
-    if (near && !completed[near.key]) {
+  if (gameStarted && !modalOpen){
+    if (sittingNow){
       promptEl.style.display = 'block';
-      promptEl.textContent = `"${near.name}" — Göreve başlamak için E tuşuna bas`;
-    } else if (near && completed[near.key]) {
-      promptEl.style.display = 'block';
-      promptEl.textContent = `"${near.name}" görevi tamamlandı ✓ (tekrar E ile deneyebilirsin)`;
+      promptEl.textContent = 'Kalkmak için E tuşuna bas';
     } else {
-      promptEl.style.display = 'none';
+      const turnSpeed = 2.4, moveSpeed = keys['shift'] ? 8.5 : 4.2;
+      let moving = false;
+      if (keys['a']) player.rotation.y += turnSpeed*dt;
+      if (keys['d']) player.rotation.y -= turnSpeed*dt;
+      const fwd = new THREE.Vector3(Math.sin(player.rotation.y),0,Math.cos(player.rotation.y));
+      let dirSign = 0;
+      if (keys['w']) dirSign = 1; else if (keys['s']) dirSign = -0.6;
+      if (dirSign !== 0){
+        moving = true;
+        const nx = player.position.x + fwd.x*moveSpeed*dt*dirSign;
+        if (!collides(nx, player.position.z)) player.position.x = nx;
+        const nz = player.position.z + fwd.z*moveSpeed*dt*dirSign;
+        if (!collides(player.position.x, nz)) player.position.z = nz;
+      }
+      player.position.x = Math.max(-29, Math.min(29, player.position.x));
+      player.position.z = Math.max(-33, Math.min(33, player.position.z));
+
+      if (moving){
+        walkT += dt*10;
+        legL.rotation.x = Math.sin(walkT)*0.6; legR.rotation.x = -Math.sin(walkT)*0.6;
+        armL.rotation.x = -Math.sin(walkT)*0.6; armR.rotation.x = Math.sin(walkT)*0.6;
+      } else {
+        legL.rotation.x *= 0.8; legR.rotation.x *= 0.8;
+        armL.rotation.x *= 0.8; armR.rotation.x *= 0.8;
+      }
+
+      currentInteractable = computeNearestInteractable();
+      if (currentInteractable){
+        const it = currentInteractable;
+        promptEl.style.display = 'block';
+        if (it.type === 'task'){
+          promptEl.textContent = completed[it.data.key]
+            ? `"${it.data.name}" görevi tamamlandı ✓ (tekrar E ile deneyebilirsin)`
+            : `"${it.data.name}" — Göreve başlamak için E tuşuna bas`;
+        } else if (it.type === 'npc'){
+          promptEl.textContent = `${it.data.name} ile konuşmak için E tuşuna bas`;
+        } else if (it.type === 'bench'){
+          promptEl.textContent = 'Banka oturmak için E tuşuna bas';
+        }
+      } else {
+        promptEl.style.display = 'none';
+      }
     }
+  } else {
+    promptEl.style.display = 'none';
   }
 
   const camOffset = new THREE.Vector3(Math.sin(player.rotation.y)*-7, 4.2, Math.cos(player.rotation.y)*-7);
   const desiredCam = player.position.clone().add(camOffset);
   camera.position.lerp(desiredCam, 0.08);
-  const lookAt = player.position.clone().add(new THREE.Vector3(0,1.4,0));
-  camera.lookAt(lookAt);
+  camera.lookAt(player.position.clone().add(new THREE.Vector3(0,1.4,0)));
 
   ball.rotation.y += dt;
+  fizikBall.rotation.y += dt*2;
 
   renderer.render(scene, camera);
 }
@@ -400,7 +624,7 @@ document.getElementById('startBtn').addEventListener('click', ()=>{
   gameStarted = true;
 });
 
-/* ============ MODAL YARDIMCI ============ */
+/* ============ GÖREV MODAL YARDIMCI ============ */
 function openModal(id){
   document.getElementById(id).style.display = 'flex';
   modalOpen = true;
